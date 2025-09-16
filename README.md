@@ -17,4 +17,4 @@ This will resolve TypeScript errors related to missing React type declarations.
   Run `npm i` to install the dependencies.
 
   Run `npm run dev` to start the development server.
-  
+  # new
