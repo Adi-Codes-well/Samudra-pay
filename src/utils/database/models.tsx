@@ -78,7 +78,9 @@ export interface CarbonCredit {
   id: string;
   projectId: string;
   amount: number;
+  price?: number; 
   ownerId?: string; // User who owns this credit
+  paymentConfirmationId?: string; 
   isRetired: boolean;
   retiredBy?: string;
   retiredAt?: string;
@@ -107,6 +109,16 @@ export interface CreditPurchase {
   amount: number;
   purchasedAt: string;
   onChainTxHash?: string;
+}
+
+export interface CreditTransaction { // New interface for audit trail
+  id: string;
+  creditId: string;
+  userId: string;
+  paymentId: string;
+  quantity: number;
+  status: 'pending' | 'completed' | 'failed';
+  createdAt: string;
 }
 
 export interface PublicStats {

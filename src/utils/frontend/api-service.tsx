@@ -21,7 +21,7 @@ import {
   MLVerificationResponse,
   FileUploadResponse,
   ApiResponse
-} from '../database/models.tsx';
+} from '../../utils/database/models.tsx';
 
 export class ApiService {
   private static baseUrl = `https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb`;
@@ -215,6 +215,15 @@ export class ApiService {
   // Health check
   static async healthCheck(): Promise<{ status: string }> {
     const response = await fetch(`${this.baseUrl}/health`);
+    return this.handleResponse(response);
+  }
+
+  static async createPaymentIntent(creditId: string, quantity: number): Promise<{ orderId: string; amount: number; currency: string }> {
+    const response = await fetch(`${this.baseUrl}/payment/create-order`, {
+      method: 'POST',
+      headers: await this.getAuthHeaders(),
+      body: JSON.stringify({ creditId, quantity })
+    });
     return this.handleResponse(response);
   }
 }
