@@ -9,7 +9,8 @@ import {
   CreditRetirement, 
   PublicStats,
   User,
-  CarbonCredit
+  CarbonCredit,
+  CreditTransaction
 } from './models.ts';
 
 export class DatabaseRepository {
@@ -130,7 +131,7 @@ export class DatabaseRepository {
     });
   }
 
-  static async purchaseCredit(creditId: string, buyerId: string): Promise<void> {
+  static async purchaseCredit(creditId: string, buyerId: string, paymentId: string): Promise<void> {
     const credit = await this.getCarbonCredit(creditId);
     if (!credit) {
       throw new Error('Credit not found');
@@ -144,9 +145,32 @@ export class DatabaseRepository {
       throw new Error('Credit has been retired and is no longer available');
     }
     
+    // Update credit ownership
     await this.updateCarbonCredit(creditId, {
-      ownerId: buyerId
+      ownerId: buyerId,
+      paymentConfirmationId: paymentId
     });
+    
+    const transaction: CreditTransaction = {
+      id: this.generateId('tx'),
+      creditId,
+      userId: buyerId,
+      paymentId,
+      quantity: credit.amount,
+      status: 'completed',
+      createdAt: new Date().toISOString()
+    };
+    await this.createCreditTransaction(transaction);
+  }
+
+  static async getCreditById(creditId: string): Promise<CarbonCredit | null> {
+    // Implement logic to retrieve a single credit by ID
+    const result = await kv.get(`credit_${creditId}`);
+    return result?.value || null;
+  }
+
+  static async createCreditTransaction(transaction: CreditTransaction): Promise<void> {
+    await kv.set(transaction.id, transaction);
   }
 
   // ML Verification operations

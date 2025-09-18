@@ -1,11 +1,14 @@
-import { Hono } from "hono";
-import { cors } from "hono/cors";
-import { logger } from "hono/logger";
+import { Hono } from "https://deno.land/x/hono@v4.3.7/mod.ts";
+import { cors } from "https://deno.land/x/hono@v4.3.7/middleware.ts";
+
+
+import { logger } from "https://deno.land/x/hono/middleware.ts";
 import { AuthService } from "./services/auth-service.ts";
 import { ProjectService } from "./services/project-service.ts";
 import { MRVService } from "./services/mrv-service.ts";
 import { MLService } from "./services/ml-service.ts";
 import { DatabaseRepository } from "./repository.ts";
+import { PaymentService } from "./services/payment-service.ts";
 
 const app = new Hono();
 
@@ -35,6 +38,47 @@ const mlService = new MLService();
 // Health check endpoint
 app.get("/health", (c) => {
   return c.json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+app.post("/payment/create-order", async (c) => {
+  try {
+    const auth = await authService.authenticateUser(c.req.raw);
+    if (!auth.success) return c.json({ error: auth.error }, 401);
+
+    const { creditId, quantity } = await c.req.json();
+    const result = await PaymentService.createPaymentIntent(creditId, quantity, auth.user.id);
+    return c.json(result);
+  } catch (error) {
+    const err = error as Error;
+    console.error(`Create payment order error: ${err.message}`);
+    return c.json({ error: err.message }, 500);
+  }
+});
+
+// Razorpay Webhook Endpoint
+app.post("/payment/webhook", async (c) => {
+  try {
+    const rawBody = await c.req.text();
+    const signature = c.req.header("X-Razorpay-Signature")!;
+    
+    if (!PaymentService.verifyWebhook(rawBody, signature)) {
+      return c.json({ error: "Webhook signature verification failed" }, 400);
+    }
+    
+    const event = JSON.parse(rawBody);
+
+    if (event.event === "payment.captured") {
+      const payment = event.payload.payment.entity;
+      const { creditId, userId } = payment.notes;
+
+      await DatabaseRepository.purchaseCredit(creditId, userId, payment.id);
+    }
+    
+    return c.json({ received: true });
+  } catch (err) {
+    console.error(`Webhook processing failed: ${err}`);
+    return c.json({ error: "Webhook processing failed" }, 400);
+  }
 });
 
 // Authentication routes
@@ -281,22 +325,14 @@ app.post("/credits/purchase", async (c) => {
   try {
     const auth = await authService.authenticateUser(c.req.raw);
     authService.requireRole(auth, 'buyer');
-
     const { creditId } = await c.req.json();
-    
     if (!creditId) {
       return c.json({ error: 'Credit ID is required' }, 400);
     }
-
     await DatabaseRepository.purchaseCredit(creditId, auth.user.id);
-    
-    return c.json({ 
-      success: true, 
-      message: 'Credit purchased successfully',
-      creditId 
-    });
+    return c.json({ success: true, message: 'Credit purchase pending confirmation', creditId });
   } catch (error) {
-    const err=error as Error;
+    const err = error as Error;
     console.log(`Credit purchase error: ${error}`);
     return c.json({ error: err.message }, 500);
   }
@@ -306,24 +342,17 @@ app.post("/credits/retire", async (c) => {
   try {
     const auth = await authService.authenticateUser(c.req.raw);
     authService.requireRole(auth, 'buyer');
-
     const { creditId, reason } = await c.req.json();
-    
     if (!creditId || !reason) {
       return c.json({ error: 'Credit ID and reason are required' }, 400);
     }
-    
     await DatabaseRepository.retireCredit(creditId, auth.user.id, reason);
-    
-    // Get the retired credit to return details
     const retiredCredit = await DatabaseRepository.getCarbonCredit(creditId);
-    
     if (retiredCredit) {
       await DatabaseRepository.incrementCreditsRetired(retiredCredit.amount);
     }
-
-    return c.json({ 
-      success: true, 
+    return c.json({
+      success: true,
       message: 'Credit retired successfully',
       retirement: {
         creditId,
@@ -333,10 +362,11 @@ app.post("/credits/retire", async (c) => {
       }
     });
   } catch (error) {
-    const err=error as Error;
+    const err = error as Error;
     console.log(`Credit retirement error: ${error}`);
     return c.json({ error: err.message }, 500);
   }
 });
+
 
 export default app;

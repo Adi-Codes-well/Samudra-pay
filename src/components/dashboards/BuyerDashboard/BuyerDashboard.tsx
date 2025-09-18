@@ -1,19 +1,31 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
-import { Button } from '../../ui/button';
-import { Separator } from '../../ui/separator';
-import { Progress } from '../../ui/progress';
-import { projectId } from '../../../utils/supabase/info';
-import { supabase } from '../../../utils/supabase/client';
-import { ShoppingCart, Award, TrendingUp, Leaf, ExternalLink } from 'lucide-react';
-import { toast } from 'sonner';
-import { WalletConnect } from '../../WalletConnect';
-import { StatsCard } from './StatsCard';
-import { CreditCard } from './CreditCard';
-import { PurchaseDialog } from './PurchaseDialog';
-import { RetirementDialog } from './RetirementDialog';
-import { RetirementHistory } from './RetirementHistory';
-import { User, CarbonCredit, Retirement } from '../../../types/dashboard';
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "../../ui/card";
+import { Button } from "../../ui/button";
+import { Separator } from "../../ui/separator";
+import { Progress } from "../../ui/progress";
+import { projectId } from "../../../utils/supabase/info";
+import { supabase } from "../../../utils/supabase/client";
+import {
+  ShoppingCart,
+  Award,
+  TrendingUp,
+  Leaf,
+  ExternalLink,
+} from "lucide-react";
+import { toast } from "sonner";
+import { WalletConnect } from "../../WalletConnect";
+import { StatsCard } from "./StatsCard";
+import { CreditCard } from "./CreditCard";
+import { PurchaseDialog } from "./PurchaseDialog";
+import { RetirementDialog } from "./RetirementDialog";
+import { RetirementHistory } from "./RetirementHistory";
+import { User, CarbonCredit, Retirement } from "../../../types/dashboard";
 
 interface BuyerDashboardProps {
   user: User;
@@ -22,11 +34,13 @@ interface BuyerDashboardProps {
 export function BuyerDashboard({ user }: BuyerDashboardProps) {
   const [availableCredits, setAvailableCredits] = useState<CarbonCredit[]>([]);
   const [ownedCredits, setOwnedCredits] = useState<CarbonCredit[]>([]);
-  const [selectedCredit, setSelectedCredit] = useState<CarbonCredit | null>(null);
+  const [selectedCredit, setSelectedCredit] = useState<CarbonCredit | null>(
+    null
+  );
   const [loading, setLoading] = useState(true);
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [showRetirementDialog, setShowRetirementDialog] = useState(false);
-  const [retirementReason, setRetirementReason] = useState('');
+  const [retirementReason, setRetirementReason] = useState("");
   const [retirements, setRetirements] = useState<Retirement[]>([]);
   const [purchaseAmount, setPurchaseAmount] = useState(1);
 
@@ -37,86 +51,106 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
 
   const fetchAvailableCredits = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/available`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/available`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         }
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch available credits');
+        throw new Error("Failed to fetch available credits");
       }
 
       const data = await response.json();
       setAvailableCredits(data.availableCredits || []);
     } catch (error) {
-      console.error('Error fetching available credits:', error);
-      toast.error('Failed to load available credits');
+      console.error("Error fetching available credits:", error);
+      toast.error("Failed to load available credits");
     }
   };
 
   const fetchOwnedCredits = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/owned`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/owned`,
+        {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
         }
-      });
+      );
 
       if (!response.ok) {
-        throw new Error('Failed to fetch owned credits');
+        throw new Error("Failed to fetch owned credits");
       }
 
       const data = await response.json();
       setOwnedCredits(data.ownedCredits || []);
     } catch (error) {
-      console.error('Error fetching owned credits:', error);
-      toast.error('Failed to load owned credits');
+      console.error("Error fetching owned credits:", error);
+      toast.error("Failed to load owned credits");
     } finally {
       setLoading(false);
     }
   };
 
   const handlePurchase = async () => {
-    if (!selectedCredit || purchaseAmount < 1 || purchaseAmount > selectedCredit.amount) return;
+    if (
+      !selectedCredit ||
+      purchaseAmount < 1 ||
+      purchaseAmount > selectedCredit.amount
+    )
+      return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/purchase`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          creditId: selectedCredit.id,
-          amount: purchaseAmount
-        })
-      });
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/purchase`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            creditId: selectedCredit.id,
+            amount: purchaseAmount,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to purchase credit');
+        throw new Error(error.error || "Failed to purchase credit");
       }
 
       toast.success(`Successfully purchased ${purchaseAmount} tCO₂e credits!`);
       setShowPurchaseDialog(false);
       setSelectedCredit(null);
-      
+
       // Refresh both available and owned credits
       fetchAvailableCredits();
       fetchOwnedCredits();
     } catch (error) {
       const err = error as Error;
-      console.error('Error purchasing credits:', err.message);
+      console.error("Error purchasing credits:", err.message);
       toast.error(`Failed to purchase credits: ${err.message}`);
     }
   };
@@ -125,39 +159,46 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
     if (!selectedCredit || !retirementReason.trim()) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
       if (!session) return;
 
-      const response = await fetch(`https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/retire`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({
-          creditId: selectedCredit.id,
-          reason: retirementReason
-        })
-      });
+      const response = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/make-server-a82c4acb/credits/retire`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            creditId: selectedCredit.id,
+            reason: retirementReason,
+          }),
+        }
+      );
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to retire credits');
+        throw new Error(error.error || "Failed to retire credits");
       }
 
       const data = await response.json();
-      toast.success(`Successfully retired ${selectedCredit.amount} tCO₂e credits!`);
-      setRetirements(prev => [data.retirement, ...prev]);
-      
+      toast.success(
+        `Successfully retired ${selectedCredit.amount} tCO₂e credits!`
+      );
+      setRetirements((prev) => [data.retirement, ...prev]);
+
       // Refresh owned credits to remove retired credit
       fetchOwnedCredits();
-      
+
       setShowRetirementDialog(false);
-      setRetirementReason('');
+      setRetirementReason("");
       setSelectedCredit(null);
     } catch (error) {
       const err = error as Error;
-      console.error('Error retiring credits:', err.message);
+      console.error("Error retiring credits:", err.message);
       toast.error(`Failed to retire credits: ${err.message}`);
     }
   };
@@ -170,7 +211,7 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
 
   const openRetirementDialog = (credit: CarbonCredit) => {
     setSelectedCredit(credit);
-    setRetirementReason('');
+    setRetirementReason("");
     setShowRetirementDialog(true);
   };
 
@@ -202,7 +243,9 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
             <ShoppingCart className="h-6 w-6 text-green-600" />
             <span>Carbon Credit Marketplace</span>
           </h2>
-          <p className="text-gray-600">Purchase and retire verified blue carbon credits</p>
+          <p className="text-gray-600">
+            Purchase and retire verified blue carbon credits
+          </p>
         </div>
         <WalletConnect variant="button-only" />
       </div>
@@ -219,7 +262,10 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
         />
         <StatsCard
           title="Available Credits"
-          value={availableCredits.reduce((sum, credit) => sum + credit.amount, 0)}
+          value={availableCredits.reduce(
+            (sum, credit) => sum + credit.amount,
+            0
+          )}
           unit="tCO₂e"
           description="In marketplace"
           icon={Award}
@@ -227,7 +273,10 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
         />
         <StatsCard
           title="Premium Credits"
-          value={availableCredits.filter(credit => credit.healthScore >= 0.8).length}
+          value={
+            availableCredits.filter((credit) => credit.healthScore >= 0.8)
+              .length
+          }
           unit=""
           description="High-quality projects"
           icon={TrendingUp}
@@ -235,7 +284,10 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
         />
         <StatsCard
           title="Retired Credits"
-          value={retirements.reduce((sum, retirement) => sum + retirement.amount, 0)}
+          value={retirements.reduce(
+            (sum, retirement) => sum + retirement.amount,
+            0
+          )}
           unit="tCO₂e"
           description="Your offset impact"
           icon={Leaf}
@@ -248,7 +300,8 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
         <CardHeader>
           <CardTitle>Available Carbon Credits</CardTitle>
           <CardDescription>
-            Purchase verified blue carbon credits from coastal restoration projects
+            Purchase verified blue carbon credits from coastal restoration
+            projects
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -256,7 +309,9 @@ export function BuyerDashboard({ user }: BuyerDashboardProps) {
             <div className="text-center py-12 text-gray-500">
               <Award className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>No credits available for purchase</p>
-              <p className="text-sm mt-2">Check back later for new verified projects</p>
+              <p className="text-sm mt-2">
+                Check back later for new verified projects
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
